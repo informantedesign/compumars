@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SGL-Venezuela Data Models",
+  "definitions": {
+    "Client": {
+      "type": "object",
+      "properties": {
+        "id_cliente": { "type": "integer" },
+        "razon_social": { "type": "string" },
+        "rif": { "type": "string", "pattern": "^[VEJPG]-[0-9]{8}-[0-9]$" },
+        "email": { "type": "string", "format": "email" },
+        "delivery_sites": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/DeliverySite" }
+        }
+      },
+      "required": ["razon_social", "rif"]
+    },
+    "DeliverySite": {
+      "type": "object",
+      "properties": {
+        "id_sitio": { "type": "integer" },
+        "alias_obra": { "type": "string" },
+        "gps_coords": { "type": "string" },
+        "contact_person": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "phone": { "type": "string" }
+          }
+        }
+      },
+      "required": ["alias_obra"]
+    },
+    "Order": {
+      "type": "object",
+      "properties": {
+        "id_pedido": { "type": "integer" },
+        "status": { 
+          "type": "string", 
+          "enum": ["Loading", "In Transit", "Delivered", "Reguia_Pending", "Cancelled"] 
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "id_chuto": { "type": "integer" },
+            "id_batea": { "type": "integer" },
+            "id_chofer": { "type": "integer" }
+          }
+        },
+        "financials": {
+          "type": "object",
+          "properties": {
+            "selling_price_unit": { "type": "number" },
+            "quantity": { "type": "number" },
+            "costs": {
+              "type": "object",
+              "properties": {
+                "plant_unit": { "type": "number" },
+                "freight": { "type": "number" },
+                "labor": { "type": "number" },
+                "other": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "required": ["status", "financials"]
+    },
+    "Reguia": {
+      "type": "object",
+      "description": "Schema for a redirected shipment",
+      "properties": {
+        "original_order_id": { "type": "integer" },
+        "new_destination_id": { "type": "integer" },
+        "change_reason": { "type": "string" },
+        "resource_changes": {
+          "type": "object",
+          "description": "Only populated if resources stuck/changed",
+          "properties": {
+            "new_chuto_id": { "type": "integer" },
+            "new_batea_id": { "type": "integer" }
+          }
+        },
+        "financial_adjustments": {
+          "type": "object",
+          "properties": {
+            "additional_freight": { "type": "number" }
+          }
+        }
+      },
+      "required": ["original_order_id", "new_destination_id"]
+    }
+  }
+}
