@@ -7,10 +7,10 @@ export async function GET(request: Request) {
 
     if (!collection) {
         // Return full DB if no collection specified (careful with size)
-        return NextResponse.json(db.read());
+        return NextResponse.json(await db.read());
     }
 
-    const data = db.getCollection(collection);
+    const data = await db.getCollection(collection);
     return NextResponse.json(data || []);
 }
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing collection or data' }, { status: 400 });
         }
 
-        db.saveCollection(collection as CollectionName, data);
+        await db.saveCollection(collection as CollectionName, data);
         return NextResponse.json({ success: true });
     } catch (error) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
