@@ -14,6 +14,7 @@ export const api = {
         }
     },
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     save: async (collection: CollectionName, data: any) => {
         try {
             const res = await fetch(API_URL, {

@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+
 import { api } from "@/lib/api"
+import { Payment } from "@/lib/trip-types"
 
 type OrderFinance = {
     id: string
@@ -27,11 +29,17 @@ type OrderFinance = {
     paymentStatus?: string
     paymentComment?: string
     paymentDate?: string
+    paymentAmount?: string
+    paymentCurrency?: string
+    paymentExchangeRate?: number
+    payments?: Payment[]
 }
+
 
 export default function FinancePage() {
     const [financials, setFinancials] = useState<OrderFinance[]>([])
     const [loading, setLoading] = useState(true)
+    const [exchangeRate, setExchangeRate] = useState<number>(0)
 
     // Payment Modal State
     const [selectedOrder, setSelectedOrder] = useState<OrderFinance | null>(null);
@@ -40,7 +48,9 @@ export default function FinancePage() {
         reference: '',
         status: 'Pendiente',
         comment: '',
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        amount: '',
+        currency: 'USD'
     });
 
     const handleRowClick = (order: OrderFinance) => {
@@ -50,7 +60,9 @@ export default function FinancePage() {
             reference: order.paymentReference || '',
             status: order.paymentStatus || 'Pendiente',
             comment: order.paymentComment || '',
-            date: order.paymentDate || new Date().toISOString().split('T')[0]
+            date: order.paymentDate || new Date().toISOString().split('T')[0],
+            amount: order.paymentAmount || (order.income ? order.income.toString() : ''),
+            currency: order.paymentCurrency || 'USD'
         });
     };
 
@@ -58,9 +70,9 @@ export default function FinancePage() {
         if (!selectedOrder) return;
 
         try {
-            const saved = await api.get("active_orders");
-            if (saved && Array.isArray(saved)) {
-                const updated = saved.map((o: any) => {
+            const savedOrders = await api.get("active_orders");
+            if (savedOrders && Array.isArray(savedOrders)) {
+                const updatedOrders = savedOrders.map((o: any) => {
                     if (o.id === selectedOrder.id) {
                         return {
                             ...o,
@@ -73,22 +85,44 @@ export default function FinancePage() {
                     }
                     return o;
                 });
-                await api.save("active_orders", updated);
 
-                // Force reload to update UI
-                loadFinancials();
+                await api.save("active_orders", updatedOrders);
+
+                // Update local state to reflect changes immediately
+                setFinancials(prev => prev.map(f => {
+                    if (f.id === selectedOrder.id) {
+                        return {
+                            ...f,
+                            paymentMethod: paymentForm.method,
+                            paymentReference: paymentForm.reference,
+                            paymentStatus: paymentForm.status,
+                            paymentComment: paymentForm.comment,
+                            paymentDate: paymentForm.date
+                        };
+                    }
+                    return f;
+                }));
+
                 setSelectedOrder(null);
             }
         } catch (e) {
-            console.error("Error saving payment", e);
+            console.error("Failed to save payment", e);
         }
     };
 
     const loadFinancials = async () => {
         try {
-            const saved = await api.get("active_orders");
-            if (saved) {
-                const financeData = saved.map((o: any) => {
+            const [savedOrders, savedSettings] = await Promise.all([
+                api.get("active_orders"),
+                api.get("settings_data")
+            ]);
+
+            if (savedSettings?.current_exchange_rate) {
+                setExchangeRate(savedSettings.current_exchange_rate);
+            }
+
+            if (savedOrders) {
+                const financeData = savedOrders.map((o: any) => {
                     const income = Number(o.freightPrice) || 0;
                     const expense = (Number(o.plantCost) || 0) + (Number(o.driverPayment) || 0) + (Number(o.otherExpenses) || 0);
                     const isCompleted = o.status === 'Completado';
@@ -107,7 +141,8 @@ export default function FinancePage() {
                         paymentReference: o.paymentReference,
                         paymentStatus: o.paymentStatus || 'Pendiente', // Default to Pending
                         paymentComment: o.paymentComment,
-                        paymentDate: o.paymentDate
+                        paymentDate: o.paymentDate,
+                        payments: o.payments || []
                     }
                 })
                 setFinancials(financeData)
@@ -132,6 +167,12 @@ export default function FinancePage() {
     const netProfit = totalIncome - totalExpense
     const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0
 
+    // Helper to format Bs
+    const formatBs = (usd: number) => {
+        if (!exchangeRate) return null;
+        return `Bs. ${(usd * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
     if (loading) return <div>Cargando datos financieros...</div>
 
     return (
@@ -149,6 +190,11 @@ export default function FinancePage() {
                         <div className="text-2xl font-bold text-green-700 dark:text-green-400">
                             ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </div>
+                        {exchangeRate > 0 && (
+                            <div className="text-sm font-medium text-green-600/80 dark:text-green-400/80 mt-0.5">
+                                {formatBs(totalIncome)}
+                            </div>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">Facturación proyectada de cargas activas</p>
                     </CardContent>
                 </Card>
@@ -162,6 +208,11 @@ export default function FinancePage() {
                         <div className="text-2xl font-bold text-red-700 dark:text-red-400">
                             ${totalExpense.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </div>
+                        {exchangeRate > 0 && (
+                            <div className="text-sm font-medium text-red-600/80 dark:text-red-400/80 mt-0.5">
+                                {formatBs(totalExpense)}
+                            </div>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">Planta + Transporte + Viáticos</p>
                     </CardContent>
                 </Card>
@@ -175,6 +226,11 @@ export default function FinancePage() {
                         <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">
                             ${netProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </div>
+                        {exchangeRate > 0 && (
+                            <div className="text-sm font-medium text-blue-600/80 dark:text-blue-400/80 mt-0.5">
+                                {formatBs(netProfit)}
+                            </div>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">Ganancia real después de costos</p>
                     </CardContent>
                 </Card>
@@ -337,69 +393,153 @@ export default function FinancePage() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Estatus de Pago</Label>
-                                <Select
-                                    value={paymentForm.status}
-                                    onValueChange={(val) => setPaymentForm({ ...paymentForm, status: val })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Pendiente">Pendiente</SelectItem>
-                                        <SelectItem value="Parcial">Parcial</SelectItem>
-                                        <SelectItem value="Pagado">Pagado</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                    <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+                        {/* PAYMENT HISTORY */}
+                        <div className="space-y-2">
+                            <h3 className="font-semibold text-sm">Historial de Pagos</h3>
+                            {selectedOrder?.payments && selectedOrder.payments.length > 0 ? (
+                                <div className="border rounded-md overflow-hidden text-sm">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-muted">
+                                            <tr>
+                                                <th className="p-2">Fecha</th>
+                                                <th className="p-2">Método</th>
+                                                <th className="p-2 text-right">Monto</th>
+                                                <th className="p-2 text-right">USD Equiv.</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedOrder.payments.map((p, i) => {
+                                                const rate = p.exchangeRate || 0;
+                                                const equivUSD = p.currency === 'USD' ? p.amount : (rate > 0 ? p.amount / rate : 0);
+                                                return (
+                                                    <tr key={i} className="border-t">
+                                                        <td className="p-2">{p.date}</td>
+                                                        <td className="p-2">
+                                                            <div>{p.method}</div>
+                                                            <div className="text-xs text-muted-foreground">{p.reference}</div>
+                                                        </td>
+                                                        <td className="p-2 text-right font-medium">
+                                                            {p.currency === 'USD' ? '$' : 'Bs.'} {p.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                        </td>
+                                                        <td className="p-2 text-right text-muted-foreground">
+                                                            ${equivUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            })}
+                                            <tr className="bg-muted/30 font-bold border-t">
+                                                <td className="p-2" colSpan={3}>Total Pagado</td>
+                                                <td className="p-2 text-right text-green-600">
+                                                    ${selectedOrder.payments.reduce((acc, p) => {
+                                                        const rate = p.exchangeRate || 0;
+                                                        return acc + (p.currency === 'USD' ? p.amount : (rate > 0 ? p.amount / rate : 0));
+                                                    }, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td className="p-2" colSpan={3}>Saldo Restante</td>
+                                                <td className="p-2 text-right text-red-600">
+                                                    ${(selectedOrder.income - selectedOrder.payments.reduce((acc, p) => {
+                                                        const rate = p.exchangeRate || 0;
+                                                        return acc + (p.currency === 'USD' ? p.amount : (rate > 0 ? p.amount / rate : 0));
+                                                    }, 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="text-sm text-muted-foreground italic border p-2 rounded text-center">No hay pagos registrados.</div>
+                            )}
+                        </div>
+
+                        <div className="border-t my-2"></div>
+
+                        {/* NEW PAYMENT FORM */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-sm">Registrar Nuevo Pago</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Monto del Pago</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="0.00"
+                                        value={paymentForm.amount}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                                    />
+                                    {paymentForm.amount && exchangeRate > 0 && (
+                                        <div className="text-xs text-muted-foreground font-medium">
+                                            {paymentForm.currency === 'USD'
+                                                ? `≈ Bs. ${(Number(paymentForm.amount) * exchangeRate).toLocaleString('es-VE', { maximumFractionDigits: 2 })}`
+                                                : `≈ $ ${(Number(paymentForm.amount) / exchangeRate).toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+                                            }
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Moneda</Label>
+                                    <Select
+                                        value={paymentForm.currency}
+                                        onValueChange={(val) => setPaymentForm({ ...paymentForm, currency: val })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="USD">USD ($)</SelectItem>
+                                            <SelectItem value="Bs">Bolívares (Bs)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Fecha de Pago</Label>
+                                    <Input
+                                        type="date"
+                                        value={paymentForm.date}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, date: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Método de Pago</Label>
+                                    <Select
+                                        value={paymentForm.method}
+                                        onValueChange={(val) => setPaymentForm({ ...paymentForm, method: val })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Seleccionar método" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Transferencia">Transferencia Bancaria</SelectItem>
+                                            <SelectItem value="Pago Móvil">Pago Móvil</SelectItem>
+                                            <SelectItem value="Zelle">Zelle / Divisas Digitales</SelectItem>
+                                            <SelectItem value="Efectivo">Efectivo / Divisas</SelectItem>
+                                            <SelectItem value="Cheque">Cheque</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
                             <div className="space-y-2">
-                                <Label>Fecha de Pago</Label>
+                                <Label>Referencia / Comprobante</Label>
                                 <Input
-                                    type="date"
-                                    value={paymentForm.date}
-                                    onChange={(e) => setPaymentForm({ ...paymentForm, date: e.target.value })}
+                                    placeholder="Ej: 12345678"
+                                    value={paymentForm.reference}
+                                    onChange={(e) => setPaymentForm({ ...paymentForm, reference: e.target.value })}
                                 />
                             </div>
-                        </div>
 
-                        <div className="space-y-2">
-                            <Label>Método de Pago</Label>
-                            <Select
-                                value={paymentForm.method}
-                                onValueChange={(val) => setPaymentForm({ ...paymentForm, method: val })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Seleccionar método" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Transferencia">Transferencia Bancaria</SelectItem>
-                                    <SelectItem value="Pago Móvil">Pago Móvil</SelectItem>
-                                    <SelectItem value="Zelle">Zelle / Divisas Digitales</SelectItem>
-                                    <SelectItem value="Efectivo">Efectivo / Divisas</SelectItem>
-                                    <SelectItem value="Cheque">Cheque</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Referencia / Comprobante</Label>
-                            <Input
-                                placeholder="Ej: 12345678"
-                                value={paymentForm.reference}
-                                onChange={(e) => setPaymentForm({ ...paymentForm, reference: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Comentarios / Detalles</Label>
-                            <Textarea
-                                placeholder="Notas adicionales sobre el pago..."
-                                value={paymentForm.comment}
-                                onChange={(e) => setPaymentForm({ ...paymentForm, comment: e.target.value })}
-                            />
+                            <div className="space-y-2">
+                                <Label>Comentarios / Detalles</Label>
+                                <Textarea
+                                    placeholder="Notas adicionales sobre el pago..."
+                                    value={paymentForm.comment}
+                                    onChange={(e) => setPaymentForm({ ...paymentForm, comment: e.target.value })}
+                                />
+                            </div>
                         </div>
 
                         <div className="bg-muted/50 p-3 rounded-md text-sm grid grid-cols-2 gap-2 mt-2">

@@ -1,5 +1,5 @@
 
-import { type TripDetail } from "@/lib/trip-types";
+
 
 export interface ReportConfig {
     issuerName: string;
@@ -10,12 +10,14 @@ export interface ReportConfig {
     contactPhone: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function processTemplate(template: string, order: any, config: ReportConfig): string {
     if (!template) return "";
     let html = template;
 
 
     // Helper to safely get nested values or empty string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const get = (val: any, fallback = "") => (val !== undefined && val !== null ? String(val) : fallback);
     const upper = (val: string) => get(val).toUpperCase();
 
@@ -48,11 +50,16 @@ export function processTemplate(template: string, order: any, config: ReportConf
 
         // Client - Prioritize Final Client/Address from Reguia
         "{{CLIENT_NAME}}": get(order.finalClient) || get(order.client),
+        "{{CLIENT_CODE}}": get(order.clientCode),
+        "{{CONSIGNEE_CODE}}": get(order.consigneeCode),
         "{{CLIENT_RIF}}": get(order.rif), // We might need updates.rif too if we want dynamic RIF
         "{{CLIENT_PHONE}}": get(order.phone),
 
         // Destination - Prioritize Final Address
-        "{{DESTINATION_ADDRESS}}": get(order.finalAddress) || get(order.destination),
+        "{{DESTINATION_ADDRESS}}": get(order.destinationDetail) || get(order.finalAddress) || get(order.destination),
+        "{{DESTINATION_STATE}}": upper(order.destinationState || " - "),
+        "{{DESTINATION_MUNICIPALITY}}": upper(order.destinationMunicipality || " - "),
+        "{{DESTINATION_PARISH}}": upper(order.destinationParish || " - "),
         "{{ORIGIN}}": upper(order.origin || ""),
         "{{ROUTE}}": get(order.route),
 

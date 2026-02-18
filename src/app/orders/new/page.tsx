@@ -19,6 +19,7 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
+import { DualCurrencyInput } from "@/components/finance/DualCurrencyInput"
 
 // Steps
 const STEPS = [
@@ -45,6 +46,7 @@ export default function NewOrderPage() {
         addressId: "",
         clientToBeAssigned: false, // New Field
         sellerId: "", // New Field
+        salesOrderNumber: "", // Manual Contract Number
 
         // Step 3
         transporterId: "",
@@ -63,6 +65,8 @@ export default function NewOrderPage() {
     // Load Sellers and Plants (simulating persistence)
     const [availableSellers, setAvailableSellers] = useState<any[]>(MOCK_SELLERS);
     const [availablePlants, setAvailablePlants] = useState<any[]>(MOCK_PLANTS);
+    const [availableClients, setAvailableClients] = useState<any[]>(MOCK_CLIENTS);
+    const [availableProducts, setAvailableProducts] = useState<any[]>(MOCK_PRODUCTS);
 
     useEffect(() => {
         const loadData = async () => {
@@ -75,6 +79,16 @@ export default function NewOrderPage() {
                 const savedPlants = await api.get("plants_data");
                 if (savedPlants && Array.isArray(savedPlants) && savedPlants.length > 0) {
                     setAvailablePlants(savedPlants);
+                }
+
+                const savedClients = await api.get("clients_data");
+                if (savedClients && Array.isArray(savedClients)) {
+                    setAvailableClients(savedClients);
+                }
+
+                const savedProducts = await api.get("products_data");
+                if (savedProducts && Array.isArray(savedProducts) && savedProducts.length > 0) {
+                    setAvailableProducts(savedProducts);
                 }
             } catch (e) {
                 console.error("Error loading initial data", e);
@@ -111,17 +125,14 @@ export default function NewOrderPage() {
 
     // Filtered Products based on Plant Configuration
     const filteredProducts = useMemo(() => {
-        // If plant has no specific product list, show all (legacy behavior or unconfigured)
-        if (!selectedPlant || !selectedPlant.products || selectedPlant.products.length === 0) {
-            return MOCK_PRODUCTS;
-        }
-        // Otherwise, filter MOCK_PRODUCTS to only those in the plant's list
-        return MOCK_PRODUCTS.filter(p => selectedPlant.products.some((pp: any) => pp.productId === p.id));
-    }, [selectedPlant]);
+        if (!selectedPlant || !selectedPlant.products) return [];
+        const plantProductIds = selectedPlant.products.map((p: any) => p.productId);
+        return availableProducts.filter(p => plantProductIds.includes(p.id));
+    }, [selectedPlant, availableProducts]);
 
-    const selectedProduct = useMemo(() => MOCK_PRODUCTS.find(p => p.id === formData.productId), [formData.productId])
-    const selectedClient = useMemo(() => MOCK_CLIENTS.find(c => c.id === Number(formData.clientId)), [formData.clientId])
-    const selectedAddress = useMemo(() => selectedClient?.addresses.find(a => a.id === formData.addressId), [selectedClient, formData.addressId])
+    const selectedProduct = useMemo(() => availableProducts.find(p => p.id === formData.productId), [formData.productId, availableProducts])
+    const selectedClient = useMemo(() => availableClients.find(c => c.id === Number(formData.clientId) || c.id === formData.clientId), [formData.clientId, availableClients])
+    const selectedAddress = useMemo(() => selectedClient?.addresses.find((a: any) => a.id === formData.addressId), [selectedClient, formData.addressId])
     const selectedSeller = useMemo(() => availableSellers.find(s => s.id === formData.sellerId), [formData.sellerId, availableSellers])
 
     // Validation Logic
@@ -174,12 +185,20 @@ export default function NewOrderPage() {
 
             // Client Logic
             client: formData.clientToBeAssigned ? "Por Asignar" : (selectedClient?.name || "Cliente"),
+            clientCode: formData.clientToBeAssigned ? "" : (selectedClient?.clientCode || ""),
+            salesOrderNumber: formData.salesOrderNumber, // Manual Input
             rif: formData.clientToBeAssigned ? "N/A" : (selectedClient?.rif || ""),
             route: `${selectedPlant?.name || 'Origen'} -> ${formData.clientToBeAssigned ? 'Por Asignar' : (selectedAddress?.municipality || 'Destino')}`,
             origin: selectedPlant?.name,
             destination: formData.clientToBeAssigned ? "Por Asignar" : (selectedAddress?.detail || "Destino"),
             contact: formData.clientToBeAssigned ? "N/A" : selectedClient?.phone,
             phone: formData.clientToBeAssigned ? "N/A" : selectedClient?.phone,
+
+            // Structured Destination
+            destinationState: formData.clientToBeAssigned ? "N/A" : selectedAddress?.state,
+            destinationMunicipality: formData.clientToBeAssigned ? "N/A" : selectedAddress?.municipality,
+            destinationParish: formData.clientToBeAssigned ? "N/A" : selectedAddress?.parish,
+            destinationDetail: formData.clientToBeAssigned ? "Por Asignar" : selectedAddress?.detail,
 
             // Final details (Reguía) - Initialize empty/placeholder
             finalClient: formData.clientToBeAssigned ? "Por Asignar" : undefined,
@@ -206,7 +225,7 @@ export default function NewOrderPage() {
             trailerType: formData.driverToBeAssigned ? "N/A" : (selectedBatea?.type || "Platform"),
 
             // Status - Logic based on missing info
-            status: (formData.clientToBeAssigned || formData.driverToBeAssigned) ? "Programado" : "Programado",
+            status: "Cargado en sistema",
 
             eta: "Por definir",
             product: selectedProduct?.name,
@@ -227,6 +246,16 @@ export default function NewOrderPage() {
                 action: "Creación",
                 details: "Pedido creado desde el asistente",
                 user: "Usuario"
+            }],
+
+            addressHistory: [{
+                type: 'CREACION',
+                date: new Date().toISOString(),
+                address: formData.clientToBeAssigned ? "Por Asignar" : (selectedAddress?.detail || "Destino"),
+                state: formData.clientToBeAssigned ? "N/A" : selectedAddress?.state,
+                municipality: formData.clientToBeAssigned ? "N/A" : selectedAddress?.municipality,
+                siteId: formData.addressId || undefined,
+                authorizedBy: "Sistema"
             }]
         }
 
@@ -385,7 +414,7 @@ export default function NewOrderPage() {
                                         <SelectValue placeholder="Seleccione Cliente" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {MOCK_CLIENTS.map(c => (
+                                        {availableClients.map(c => (
                                             <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -403,18 +432,32 @@ export default function NewOrderPage() {
                                         <SelectValue placeholder={formData.clientId ? "Seleccione Dirección" : "Primero seleccione un cliente"} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {selectedClient?.addresses.map(addr => (
+                                        {selectedClient?.addresses.map((addr: any) => (
                                             <SelectItem key={addr.id} value={addr.id}>
                                                 {addr.state}, {addr.municipality} - {addr.detail}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                {selectedClient && selectedClient.addresses.length === 0 && (
+                                {selectedClient && selectedClient.addresses?.length === 0 && (
                                     <p className="text-xs text-destructive flex items-center gap-1">
                                         <AlertCircle className="h-3 w-3" /> Este cliente no tiene direcciones registradas.
                                     </p>
                                 )}
+
+                                {/* Sales Order / Contract Number */}
+                                <div className="space-y-2 mt-4 pt-4 border-t border-dashed">
+                                    <Label htmlFor="salesOrderNumber" className="flex items-center gap-2">
+                                        <Briefcase className="h-4 w-4" /> Nro. Oferta / Contrato
+                                    </Label>
+                                    <Input
+                                        id="salesOrderNumber"
+                                        placeholder="Ej. OFERTA-2024-001"
+                                        value={formData.salesOrderNumber}
+                                        onChange={(e) => setFormData({ ...formData, salesOrderNumber: e.target.value })}
+                                    />
+                                    <p className="text-xs text-muted-foreground">Opcional: Indique el número de oferta o contrato específico para esta operación.</p>
+                                </div>
                                 {selectedAddress && !formData.clientToBeAssigned && (
                                     <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-100 dark:border-blue-800 flex items-start gap-2">
                                         <MapPin className="h-4 w-4 text-blue-600 mt-0.5" />
@@ -566,14 +609,12 @@ export default function NewOrderPage() {
                                 </div>
 
                                 <div className="space-y-2 max-w-xs">
-                                    <Label className={formData.isPickup ? "opacity-50" : ""}>Pago Chofer / Flete ($)</Label>
-                                    <Input
-                                        type="number"
-                                        placeholder="0.00"
-                                        disabled={formData.isPickup}
-                                        value={formData.freightCost}
-                                        onChange={(e) => setFormData({ ...formData, freightCost: e.target.value })}
+                                    <DualCurrencyInput
+                                        label="Pago Chofer / Flete ($)"
+                                        valueUSD={parseFloat(formData.freightCost) || 0}
+                                        onChange={(val) => setFormData({ ...formData, freightCost: val.toString() })}
                                     />
+                                    {formData.isPickup && <p className="text-xs text-muted-foreground">Deshabilitado por Retiro en Planta</p>}
                                 </div>
                             </div>
                         </div>
@@ -601,25 +642,25 @@ export default function NewOrderPage() {
                                             <td className="p-4 text-center">{selectedProduct?.unit}</td>
                                             <td className="p-4 text-center font-mono">{quantityNum}</td>
                                             <td className="p-4 text-right">
-                                                <Input
-                                                    type="number"
-                                                    className="w-24 text-right h-8 ml-auto"
-                                                    value={formData.unitPrice}
-                                                    onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
-                                                    placeholder="0.00"
-                                                />
+                                                <div className="flex justify-end">
+                                                    <DualCurrencyInput
+                                                        valueUSD={parseFloat(formData.unitPrice) || 0}
+                                                        onChange={(val) => setFormData({ ...formData, unitPrice: val.toString() })}
+                                                        className="w-48"
+                                                    />
+                                                </div>
                                             </td>
                                             <td className="p-4 text-right font-bold text-green-600">
                                                 {totalSales.toFixed(2)}
                                             </td>
                                             <td className="p-4 text-right">
-                                                <Input
-                                                    type="number"
-                                                    className="w-24 text-right h-8 ml-auto"
-                                                    value={formData.unitCost}
-                                                    onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })}
-                                                    placeholder="0.00"
-                                                />
+                                                <div className="flex justify-end">
+                                                    <DualCurrencyInput
+                                                        valueUSD={parseFloat(formData.unitCost) || 0}
+                                                        onChange={(val) => setFormData({ ...formData, unitCost: val.toString() })}
+                                                        className="w-48"
+                                                    />
+                                                </div>
                                             </td>
                                             <td className="p-4 text-right font-bold text-red-600">
                                                 {totalCost.toFixed(2)}

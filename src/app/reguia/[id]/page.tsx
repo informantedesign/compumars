@@ -1,11 +1,13 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ArrowRight, MapPin, AlertTriangle, Truck, Printer } from "lucide-react"
 import { useLanguage } from "@/context/language-context"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,17 +15,87 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { api } from "@/lib/api"
+import { TripDetail } from "@/lib/trip-types"
 
 export default function ReguiaPage({ params }: { params: { id: string } }) {
-    const { t } = useLanguage();
-    // Mock Data for the existing order
-    const order = {
-        id: params.id,
-        originalOrigin: "Planta Pertigalete",
-        originalDest: "Sambil Maracaibo",
-        driver: "Pedro Perez (CH-04)",
-        status: "In Transit"
+    const { t } = useLanguage()
+    const router = useRouter()
+    const { id } = params
+
+    const [order, setOrder] = useState<TripDetail | null>(null)
+    const [loading, setLoading] = useState(true)
+
+    // Form State
+    const [newSite, setNewSite] = useState("")
+    const [reason, setReason] = useState("Client Request")
+    const [addFreight, setAddFreight] = useState("")
+
+    useEffect(() => {
+        const loadOrder = async () => {
+            try {
+                const orders = await api.get("active_orders") || []
+                const found = orders.find((o: any) => o.id === id)
+                if (found) {
+                    setOrder(found)
+                }
+            } catch (e) {
+                console.error("Error loading order", e)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadOrder()
+    }, [id])
+
+    const handleConfirm = async () => {
+        if (!order) return
+
+        // Create Address Snapshot
+        const newHistoryEntry: any = {
+            type: 'REGUIA',
+            date: new Date().toISOString(),
+            address: newSite,
+            reason: reason,
+            authorizedBy: 'Usuario' // Placeholder
+        }
+
+        // Clone and Update Order
+        const updatedOrder: TripDetail = {
+            ...order,
+            // Update current destination to the new one
+            destination: newSite,
+            destinationDetail: newSite,
+            status: "Reguia_Pending", // Or 'In Transit' but flagged
+
+            // Append to history
+            addressHistory: [...(order.addressHistory || []), newHistoryEntry],
+
+            // Append generic history
+            history: [...(order.history || []), {
+                date: new Date().toLocaleString(),
+                action: "Reguia",
+                details: `Desvío a ${newSite}. Motivo: ${reason}`,
+                user: "Usuario"
+            }]
+        }
+
+        try {
+            const orders = await api.get("active_orders") || []
+            const newOrders = orders.map((o: any) => o.id === id ? updatedOrder : o)
+            await api.save("active_orders", newOrders)
+
+            // Redirect or Notify
+            alert("Reguía procesada exitosamente")
+            router.push("/dashboard")
+        } catch (e) {
+            console.error("Error saving reguia", e)
+            alert("Error al procesar la reguía")
+        }
     }
+
+    if (loading) return <div>Cargando...</div>
+    if (!order) return <div>Pedido no encontrado</div>
 
     return (
         <div className="max-w-3xl mx-auto py-8 space-y-8">
@@ -39,24 +111,24 @@ export default function ReguiaPage({ params }: { params: { id: string } }) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
-                            <Link href={`/print/order/${params.id}?mode=combined`} target="_blank" className="cursor-pointer">
+                            <Link href={`/print/order/${id}?mode=combined`} target="_blank" className="cursor-pointer">
                                 Todo (Autorización + Nota)
                             </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                            <Link href={`/print/order/${params.id}?mode=authorization`} target="_blank" className="cursor-pointer">
+                            <Link href={`/print/order/${id}?mode=authorization`} target="_blank" className="cursor-pointer">
                                 Solo Autorización
                             </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                            <Link href={`/print/order/${params.id}?mode=delivery`} target="_blank" className="cursor-pointer">
+                            <Link href={`/print/order/${id}?mode=delivery`} target="_blank" className="cursor-pointer">
                                 Solo Nota de Entrega
                             </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                            <Link href={`/print/order/${params.id}?mode=transfer_guide`} target="_blank" className="cursor-pointer font-bold text-green-700">
+                            <Link href={`/print/order/${id}?mode=transfer_guide`} target="_blank" className="cursor-pointer font-bold text-green-700">
                                 Guía de Traslado (Ministerio)
                             </Link>
                         </DropdownMenuItem>
@@ -84,25 +156,30 @@ export default function ReguiaPage({ params }: { params: { id: string } }) {
                         <div className="opacity-50 line-through decoration-destructive decoration-2">
                             <p className="text-xs font-uppercase text-muted-foreground">{t.reguia.origDest}</p>
                             <p className="font-bold flex items-center gap-2">
-                                <MapPin className="w-4 h-4" /> {order.originalDest}
+                                <MapPin className="w-4 h-4" /> {order.destination}
                             </p>
                         </div>
                         <ArrowRight className="text-muted-foreground" />
                         <div className="text-primary">
                             <p className="text-xs font-uppercase text-primary/80">{t.reguia.newDest}</p>
                             <p className="font-bold flex items-center gap-2 animate-pulse">
-                                <MapPin className="w-4 h-4" /> {t.reguia.selectBelow}
+                                <MapPin className="w-4 h-4" /> {newSite || t.reguia.selectBelow}
                             </p>
                         </div>
                     </div>
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">{t.reguia.newSiteLabel}</label>
-                        <select className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus:ring-2 focus:ring-primary">
-                            <option>Viviendas El Sol (Valencia)</option>
-                            <option>Deposito Central (Barquisimeto)</option>
-                            <option>Obra Privada (Caracas)</option>
-                        </select>
+                        {/* 
+                           In a real app, this should be a Select fetching from available sites. 
+                           For now, we use a simple Input or pre-defined Select to keep it simple as per original mockup.
+                           Let's use an Input for flexibility.
+                        */}
+                        <Input
+                            value={newSite}
+                            onChange={(e) => setNewSite(e.target.value)}
+                            placeholder="Ingrese el nuevo destino..."
+                        />
                     </div>
 
                     <div className="space-y-4 pt-4 border-t border-border">
@@ -133,11 +210,21 @@ export default function ReguiaPage({ params }: { params: { id: string } }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium">{t.reguia.addFreight}</label>
-                            <Input type="number" placeholder="0.00" className="border-yellow-500/20 focus:border-yellow-500" />
+                            <Input
+                                type="number"
+                                placeholder="0.00"
+                                className="border-yellow-500/20 focus:border-yellow-500"
+                                value={addFreight}
+                                onChange={(e) => setAddFreight(e.target.value)}
+                            />
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium">{t.reguia.reasonCode}</label>
-                            <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                            <select
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                value={reason}
+                                onChange={(e) => setReason(e.target.value)}
+                            >
                                 <option>Client Request</option>
                                 <option>Road Blockage / Protest</option>
                                 <option>Weather Conditions</option>
@@ -147,8 +234,13 @@ export default function ReguiaPage({ params }: { params: { id: string } }) {
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
-                    <Button variant="ghost">{t.reguia.buttons.cancel}</Button>
-                    <Button variant="destructive" className="bg-yellow-600 hover:bg-yellow-500 text-white border-none">
+                    <Button variant="ghost" onClick={() => router.back()}>{t.reguia.buttons.cancel}</Button>
+                    <Button
+                        variant="destructive"
+                        className="bg-yellow-600 hover:bg-yellow-500 text-white border-none"
+                        onClick={handleConfirm}
+                        disabled={!newSite}
+                    >
                         {t.reguia.buttons.confirm}
                     </Button>
                 </CardFooter>

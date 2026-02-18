@@ -7,44 +7,9 @@ import { Printer } from "lucide-react"
 import { DEFAULT_AUTHORIZATION_TEMPLATE, DEFAULT_DELIVERY_TEMPLATE, DEFAULT_TRANSFER_GUIDE_TEMPLATE } from "@/lib/report-templates"
 import { processTemplate, ReportConfig } from "@/lib/report-utils"
 import { api } from "@/lib/api"
+import { TripDetail } from "@/lib/trip-types"
 
-// Types (Mirrors Dashboard/Order Type)
-type TripDetail = {
-    id: string
-    plantOrderNumber?: string
-    client: string
-    rif: string
-    route: string
-    origin: string
-    destination: string
-    driver: string
-    driverPhone: string
-    truck: string
-    plate: string
 
-    // Detailed Vehicle Info
-    truckPlate?: string
-    truckBrand?: string
-    truckModel?: string
-    truckColor?: string
-    truckType?: string
-
-    trailerPlate?: string
-    trailerBrand?: string
-    trailerModel?: string
-    trailerColor?: string
-    trailerType?: string
-
-    status: string
-    eta: string
-    product: string
-    quantity: string
-    contact: string
-    phone: string
-    history: any[]
-    finalClient?: string
-    finalAddress?: string
-}
 
 function OrderPrintContent() {
     const params = useParams()
@@ -103,10 +68,32 @@ function OrderPrintContent() {
                     }
                 }
 
-                // Load Templates
-                const savedTemplates = await api.get("report_templates");
-                if (savedTemplates) {
-                    setTemplates(prev => ({ ...prev, ...savedTemplates }));
+                // Load Templates from DB - Use specific endpoint for correct sorting (newest first)
+                try {
+                    const resTemplates = await fetch('/api/report-templates');
+                    if (resTemplates.ok) {
+                        const savedTemplates = await resTemplates.json();
+                        if (Array.isArray(savedTemplates)) {
+                            setTemplates(prev => {
+                                const newTemplates = { ...prev };
+
+                                // API returns sorted by updated_at DESC, so find() gets the newest/latest active
+                                const authTemplate = savedTemplates.find((t: any) => t.type === 'AUTHORIZATION' && t.is_active);
+                                if (authTemplate) newTemplates.authorization = authTemplate.html_content;
+
+                                const delTemplate = savedTemplates.find((t: any) => t.type === 'DELIVERY' && t.is_active);
+                                if (delTemplate) newTemplates.delivery = delTemplate.html_content;
+
+                                const transferTemplate = savedTemplates.find((t: any) => t.type === 'TRANSFER' && t.is_active);
+                                if (transferTemplate) newTemplates.transfer_guide = transferTemplate.html_content;
+
+                                return newTemplates;
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error fetching templates via API endpoint", err);
+                    // Fallback to generic api.get if needed, or just log
                 }
 
                 // Load Config

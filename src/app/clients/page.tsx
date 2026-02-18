@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +16,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { api } from "@/lib/api"
 
 import {
     Select,
@@ -34,6 +35,7 @@ type Address = {
     parish: string
     detail: string
     postalCode: string
+    consigneeCode?: string // Added here
     isFiscal: boolean
 }
 
@@ -41,6 +43,8 @@ type Client = {
     id: number
     name: string
     rif: string
+    clientCode?: string
+    // consigneeCode removed from here
     phone: string
     addresses: Address[]
 }
@@ -48,30 +52,28 @@ type Client = {
 export default function ClientsPage() {
     const { t } = useLanguage()
 
-    // Mock Data
-    const [clients, setClients] = useState<Client[]>([
-        {
-            id: 1,
-            name: "Constructora Sambil",
-            rif: "J-3049293-1",
-            phone: "0212-555-9988",
-            addresses: [
-                { id: "addr-1", state: "Distrito Capital", municipality: "Libertador", parish: "Candelaria", detail: "Av. Urdaneta, Edif. Sambil", postalCode: "1010", isFiscal: true }
-            ]
-        },
-        {
-            id: 2,
-            name: "Viviendas Venezuela",
-            rif: "J-4099221-0",
-            phone: "0241-555-1234",
-            addresses: []
-        },
-    ])
+    // Mock Data - Replaced with API Loading
+    const [clients, setClients] = useState<Client[]>([])
+
+    // Load Clients from API
+    useEffect(() => {
+        const loadClients = async () => {
+            try {
+                const saved = await api.get("clients_data");
+                if (saved && Array.isArray(saved) && saved.length > 0) {
+                    setClients(saved);
+                }
+            } catch (e) {
+                console.error("Failed to load clients", e);
+            }
+        };
+        loadClients();
+    }, []);
 
     // Form State
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingId, setEditingId] = useState<number | null>(null)
-    const [formData, setFormData] = useState<Omit<Client, 'id' | 'addresses'>>({ name: "", rif: "", phone: "" })
+    const [formData, setFormData] = useState<Omit<Client, 'id' | 'addresses'>>({ name: "", rif: "", phone: "", clientCode: "" })
     const [addresses, setAddresses] = useState<Address[]>([])
 
     // Address Form State
@@ -82,25 +84,31 @@ export default function ClientsPage() {
     const selectedState = useMemo(() => VENEZUELA_DATA.find(s => s.name === newAddress.state), [newAddress.state])
     const selectedMunicipality = useMemo(() => selectedState?.municipalities.find(m => m.name === newAddress.municipality), [selectedState, newAddress.municipality])
 
-    const handleSaveClient = () => {
+    const handleSaveClient = async () => {
         if (!formData.name || !formData.rif) return;
 
         const clientData = {
             name: formData.name,
             rif: formData.rif,
             phone: formData.phone,
+            clientCode: formData.clientCode,
             addresses: addresses
         }
 
+        let updatedClients;
         if (editingId) {
-            setClients(clients.map(c => c.id === editingId ? { ...c, id: editingId, ...clientData } : c))
+            updatedClients = clients.map(c => c.id === editingId ? { ...c, id: editingId, ...clientData } : c);
         } else {
             const newClient = {
-                id: clients.length + 1,
+                id: Date.now(), // Use timestamp for unique ID to avoid conflicts
                 ...clientData
-            }
-            setClients([...clients, newClient])
+            };
+            updatedClients = [...clients, newClient];
         }
+
+        setClients(updatedClients);
+        await api.save("clients_data", updatedClients);
+
         setIsDialogOpen(false)
         resetForm()
     }
@@ -115,6 +123,7 @@ export default function ClientsPage() {
             parish: newAddress.parish,
             detail: newAddress.detail,
             postalCode: newAddress.postalCode || "",
+            consigneeCode: newAddress.consigneeCode || "",
             isFiscal: addresses.length === 0 // First address is always fiscal
         }
 
@@ -134,7 +143,7 @@ export default function ClientsPage() {
 
     const handleEditClient = (client: Client) => {
         setEditingId(client.id)
-        setFormData({ name: client.name, rif: client.rif, phone: client.phone })
+        setFormData({ name: client.name, rif: client.rif, phone: client.phone, clientCode: client.clientCode || "" })
         setAddresses(client.addresses) // Load existing addresses
         setIsDialogOpen(true)
     }
@@ -146,7 +155,7 @@ export default function ClientsPage() {
     }
 
     const resetForm = () => {
-        setFormData({ name: "", rif: "", phone: "" })
+        setFormData({ name: "", rif: "", phone: "", clientCode: "" })
         setAddresses([])
         setNewAddress({})
         setShowAddressForm(false)
@@ -184,6 +193,13 @@ export default function ClientsPage() {
                                         <Label htmlFor="rif">RIF</Label>
                                         <Input id="rif" value={formData.rif} onChange={e => setFormData({ ...formData, rif: e.target.value })} />
                                     </div>
+
+                                    {/* NEW FIELDS */}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="clientCode">Códig. Cliente</Label>
+                                        <Input id="clientCode" placeholder="Ej. CLI-001" value={formData.clientCode} onChange={e => setFormData({ ...formData, clientCode: e.target.value })} />
+                                    </div>
+
                                     <div className="space-y-2 col-span-2">
                                         <Label htmlFor="phone">Teléfono de Contacto</Label>
                                         <Input id="phone" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
@@ -213,6 +229,11 @@ export default function ClientsPage() {
                                                     <span className="font-semibold text-sm">
                                                         {addr.state}, {addr.municipality}
                                                     </span>
+                                                    {addr.consigneeCode && (
+                                                        <span className="text-[10px] bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full font-bold">
+                                                            {addr.consigneeCode}
+                                                        </span>
+                                                    )}
                                                     {addr.isFiscal && (
                                                         <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase">
                                                             Fiscal
@@ -296,6 +317,14 @@ export default function ClientsPage() {
                                                     placeholder="Ej. 1010"
                                                     value={newAddress.postalCode || ""}
                                                     onChange={e => setNewAddress({ ...newAddress, postalCode: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-2 col-span-2">
+                                                <Label>Código Destinatario</Label>
+                                                <Input
+                                                    placeholder="Ej. DEST-001"
+                                                    value={newAddress.consigneeCode || ""}
+                                                    onChange={e => setNewAddress({ ...newAddress, consigneeCode: e.target.value })}
                                                 />
                                             </div>
                                         </div>

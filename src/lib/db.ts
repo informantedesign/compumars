@@ -8,19 +8,29 @@ export type CollectionName =
     | 'report_config'
     | 'clients_data'
     | 'sellers_data'
-    | 'plants_data';
+    | 'plants_data'
+    | 'products_data'
+    | 'settings_data';
 
 interface DatabaseSchema {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     active_orders: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     report_templates: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     report_config: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     clients_data: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sellers_data: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     plants_data: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    settings_data: any;
 }
 
 const INITIAL_DB: DatabaseSchema = {
-    active_orders: generateRandomOrders(5),
+    active_orders: [],
     report_templates: {
         authorization: DEFAULT_AUTHORIZATION_TEMPLATE,
         delivery: DEFAULT_DELIVERY_TEMPLATE,
@@ -36,15 +46,23 @@ const INITIAL_DB: DatabaseSchema = {
     },
     clients_data: MOCK_CLIENTS,
     sellers_data: MOCK_SELLERS,
-    plants_data: MOCK_PLANTS
+    plants_data: MOCK_PLANTS,
+    settings_data: {}
 };
 
 export const db = {
     // We keep 'read' but it's now async and fetches everything (careful with performance)
     // For better performance, use getCollection directly.
     read: async (): Promise<DatabaseSchema> => {
+        // Fast fallback if no DB configured
+        if (!process.env.POSTGRES_URL) {
+            console.warn("POSTGRES_URL not found, using mock data.");
+            return INITIAL_DB;
+        }
+
         try {
             const { rows } = await sql`SELECT key, value FROM app_data`;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const data: any = {};
             rows.forEach(row => {
                 data[row.key] = row.value;
@@ -59,6 +77,11 @@ export const db = {
 
     // 'write' is also async now
     write: async (data: DatabaseSchema) => {
+        if (!process.env.POSTGRES_URL) {
+            console.warn("POSTGRES_URL not found, skipping write.");
+            return;
+        }
+
         try {
             for (const [key, value] of Object.entries(data)) {
                 await sql`
@@ -73,6 +96,10 @@ export const db = {
     },
 
     getCollection: async (collection: CollectionName) => {
+        if (!process.env.POSTGRES_URL) {
+            return INITIAL_DB[collection as keyof DatabaseSchema];
+        }
+
         try {
             const { rows } = await sql`SELECT value FROM app_data WHERE key = ${collection}`;
             if (rows.length > 0) {
@@ -85,7 +112,12 @@ export const db = {
         }
     },
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     saveCollection: async (collection: CollectionName, items: any) => {
+        if (!process.env.POSTGRES_URL) {
+            return items;
+        }
+
         try {
             await sql`
                 INSERT INTO app_data (key, value)

@@ -1,4 +1,4 @@
-import { VENEZUELA_DATA } from "./venezuela";
+
 
 export const MOCK_PLANTS = [
     {
@@ -34,9 +34,10 @@ export const MOCK_CLIENTS = [
         id: 1,
         name: "Constructora Sambil",
         rif: "J-3049293-1",
+        clientCode: "CLI-001",
         phone: "0212-555-9988",
         addresses: [
-            { id: "addr-1", state: "Distrito Capital", municipality: "Libertador", parish: "Candelaria", detail: "Av. Urdaneta, Edif. Sambil", postalCode: "1010", isFiscal: true }
+            { id: "addr-1", state: "Distrito Capital", municipality: "Libertador", parish: "Candelaria", detail: "Av. Urdaneta, Edif. Sambil", postalCode: "1010", consigneeCode: "DEST-001", isFiscal: true }
         ]
     },
     {
@@ -65,8 +66,8 @@ export const MOCK_DRIVERS = [
 
 export const MOCK_TRANSPORTERS = [
     { id: 0, name: "INDEPENDIENTES", rif: "J-00000000-0", contact: "N/A", phone: "N/A", type: "Genérico" },
-    { id: 1, name: "Transportes Los Andes", rif: "J-30123456-0", contact: "Sr. Luis", phone: "0414-1112222", type: "Empresa" },
-    { id: 2, name: "Logística Central", rif: "J-40987654-1", contact: "Sra. Ana", phone: "0424-3334444", type: "Cooperativa" },
+    { id: 1, name: "Transportes Los Andes", rif: "J-30123456-0", contact: "Sr. Luis", phone: "0414-1112222", type: "Empresa", address: "Valencia, Carabobo" },
+    { id: 2, name: "Logística Central", rif: "J-40987654-1", contact: "Sra. Ana", phone: "0424-3334444", type: "Cooperativa", address: "Maracay, Aragua" },
 ];
 
 export const MOCK_CHUTOS = [
@@ -82,14 +83,14 @@ export const MOCK_BATEAS = [
 ];
 
 export const MOCK_SELLERS = [
-    { id: "V-000", name: "Oficina", commission: 0, phone: "N/A" },
-    { id: "V-001", name: "Juan Pérez", commission: 5, phone: "0412-1234567" },
-    { id: "V-002", name: "María Gómez", commission: 3, phone: "0414-9876543" },
+    { id: "V-000", name: "Oficina", commission: 0, phone: "N/A", type: "Interno" },
+    { id: "V-001", name: "Juan Pérez", commission: 5, phone: "0412-1234567", type: "Vendedor Externo" },
+    { id: "V-002", name: "María Gómez", commission: 3, phone: "0414-9876543", type: "Promotor" },
 ];
 
 export function generateRandomOrders(count: number) {
     const orders = [];
-    const statuses = ["Cargando", "En Ruta", "En Sitio", "Completado", "Cancelado"];
+    const statuses = ["Cargado en sistema", "Cargando", "En Ruta", "En Sitio", "Completado", "Cancelado"];
     const products = ["CEMENTO GRIS", "CEMENTO BLANCO", "PEGAMENTO GRIS", "YESO", "CAL"];
 
     for (let i = 0; i < count; i++) {
@@ -99,10 +100,21 @@ export function generateRandomOrders(count: number) {
         const batea = MOCK_BATEAS[Math.floor(Math.random() * MOCK_BATEAS.length)];
         const seller = MOCK_SELLERS[Math.floor(Math.random() * MOCK_SELLERS.length)];
 
-        let address = "Dirección Desconocida";
+        let destinationState = "N/A";
+        let destinationMunicipality = "N/A";
+        let destinationParish = "N/A";
+        let destinationDetail = "Dirección Desconocida";
+
         if (client.addresses && client.addresses.length > 0) {
             const addrObj = client.addresses[0];
-            address = typeof addrObj === 'string' ? addrObj : (addrObj.detail || "Dirección Desconocida");
+            if (typeof addrObj === 'string') {
+                destinationDetail = addrObj;
+            } else {
+                destinationState = addrObj.state || "N/A";
+                destinationMunicipality = addrObj.municipality || "N/A";
+                destinationParish = addrObj.parish || "N/A";
+                destinationDetail = addrObj.detail || "Dirección Desconocida";
+            }
         }
 
         orders.push({
@@ -112,9 +124,13 @@ export function generateRandomOrders(count: number) {
             rif: client.rif,
             route: "Pertigalete -> Caracas",
             origin: "Planta Pertigalete",
-            destination: address,
+            destination: destinationDetail,
+            destinationState,
+            destinationMunicipality,
+            destinationParish,
+            destinationDetail,
             finalClient: client.name,
-            finalAddress: address,
+            finalAddress: destinationDetail,
             driver: driver.name,
             driverCedula: driver.cedula,
             driverPhone: driver.phone || "0414-1234567",

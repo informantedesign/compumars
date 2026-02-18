@@ -13,6 +13,8 @@ import {
     Map,
     DollarSign,
     Settings,
+    FileText,
+    BarChart,
 } from "lucide-react";
 import { useLanguage } from "@/context/language-context";
 import { cn } from "@/lib/utils";
@@ -36,11 +38,14 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
         { href: "/drivers", icon: Users, label: t.sidebar.drivers },
         { href: "/fleet", icon: Truck, label: t.sidebar.fleet },
         { href: "/sellers", icon: Users, label: "Vendedores" },
-        { separator: true },
-        { href: "#", icon: Map, label: t.sidebar.fleetMap },
+        { href: "/users", icon: Users, label: "Usuarios y Seguridad" },
+
+
         { href: "/finance", icon: DollarSign, label: "Finanzas" },
+        { href: "/analytics/explorer", icon: BarChart, label: "REPORTES" },
         { separator: true },
-        { href: "/utilities", icon: Settings, label: "Utilidades" },
+        { href: "/admin/templates", icon: FileText, label: "Biblioteca Documentos" },
+        { href: "/admin/settings", icon: Settings, label: "Configuración" },
     ];
 
     return (

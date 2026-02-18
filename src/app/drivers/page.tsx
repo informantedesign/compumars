@@ -26,9 +26,9 @@ export default function DriversPage() {
 
     // Data State
     const [drivers, setDrivers] = useState([
-        { id: 1, name: "Pedro Perez", cedula: "V-15.223.111", license: "5ta", status: "Active" },
-        { id: 2, name: "Juan Rodriguez", cedula: "V-12.998.222", license: "5ta", status: "Active" },
-        { id: 3, name: "Carlos Mendez", cedula: "V-20.111.999", license: "5ta", status: "On Leave" },
+        { id: 1, name: "Pedro Perez", cedula: "V-15.223.111", license: "5ta", status: "Active", phone: "0414-1112233" },
+        { id: 2, name: "Juan Rodriguez", cedula: "V-12.998.222", license: "5ta", status: "Active", phone: "0424-5556677" },
+        { id: 3, name: "Carlos Mendez", cedula: "V-20.111.999", license: "5ta", status: "On Leave", phone: "0412-9998877" },
     ])
 
     const [transporters, setTransporters] = useState([
@@ -44,7 +44,7 @@ export default function DriversPage() {
     const [editingTransporterId, setEditingTransporterId] = useState<number | null>(null)
 
     // Forms
-    const [driverForm, setDriverForm] = useState({ name: "", cedula: "", license: "5ta" })
+    const [driverForm, setDriverForm] = useState({ name: "", cedula: "", license: "5ta", phone: "" })
     const [transporterForm, setTransporterForm] = useState({ name: "", rif: "", contact: "", phone: "", type: "Empresa" })
 
     // Driver Handlers
@@ -108,7 +108,7 @@ export default function DriversPage() {
 
                         <Dialog open={driverModal} onOpenChange={setDriverModal}>
                             <DialogTrigger asChild>
-                                <Button onClick={() => { setEditingDriverId(null); setDriverForm({ name: "", cedula: "", license: "5ta" }) }}>
+                                <Button onClick={() => { setEditingDriverId(null); setDriverForm({ name: "", cedula: "", license: "5ta", phone: "" }) }}>
                                     <Plus className="mr-2 h-4 w-4" /> {t.drivers.add}
                                 </Button>
                             </DialogTrigger>
@@ -128,6 +128,10 @@ export default function DriversPage() {
                                     <div className="grid gap-2">
                                         <Label>Licencia</Label>
                                         <Input value={driverForm.license} onChange={e => setDriverForm({ ...driverForm, license: e.target.value })} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Teléfono</Label>
+                                        <Input value={driverForm.phone} onChange={e => setDriverForm({ ...driverForm, phone: e.target.value })} placeholder="04xx-xxxxxxx" />
                                     </div>
                                 </div>
                                 <DialogFooter>
@@ -157,6 +161,11 @@ export default function DriversPage() {
                                         <span className="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-xs font-medium text-green-500 ring-1 ring-inset ring-green-500/20">
                                             Licencia: {driver.license}
                                         </span>
+                                        {driver.phone && (
+                                            <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-500 ring-1 ring-inset ring-blue-500/20">
+                                                {driver.phone}
+                                            </span>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>

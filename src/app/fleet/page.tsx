@@ -86,6 +86,7 @@ export default function FleetPage() {
                 <TabsList>
                     <TabsTrigger value="chutos">{t.fleet.chuto}</TabsTrigger>
                     <TabsTrigger value="bateas">{t.fleet.batea}</TabsTrigger>
+
                 </TabsList>
 
                 <TabsContent value="chutos" className="space-y-4">
@@ -219,6 +220,8 @@ export default function FleetPage() {
                         </Card>
                     ))}
                 </TabsContent>
+
+
             </Tabs>
         </div>
     )

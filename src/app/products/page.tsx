@@ -22,7 +22,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { api } from "@/lib/api"
 
 // Product Type Definition
 type Product = {
@@ -36,12 +37,36 @@ type Product = {
 export default function ProductsPage() {
     const { t } = useLanguage()
 
-    // Mock Data
-    const [products, setProducts] = useState<Product[]>([
-        { id: "PROD-001", name: "Cemento Portland Tipo I", presentation: "Sacos", unit: "kg", weight: "42.5" },
-        { id: "PROD-002", name: "Cemento Granel Industrial", presentation: "Granel", unit: "Ton", weight: "1" },
-        { id: "PROD-003", name: "Pego Gris Estándar", presentation: "Sacos", unit: "kg", weight: "10" },
-    ])
+    // Mock Data - Initial State if empty, but we prefer API
+    const [products, setProducts] = useState<Product[]>([])
+
+    // Load from API on mount
+    useEffect(() => {
+        const loadProducts = async () => {
+            try {
+                const saved = await api.get("products_data");
+                if (saved && Array.isArray(saved) && saved.length > 0) {
+                    setProducts(saved);
+                } else {
+                    // Seed with defaults if completely empty? Or just leave empty?
+                    // User wants "only products created". So let's leave empty OR seed once and save.
+                    // Let's seed once so they aren't confused by an empty table initially, 
+                    // BUT they said "no me estan apareciendo los productos creados", "me aparecen productos que no he creado".
+                    // They probably created products in the PREVIOUS session but since it wasn't valid, it didn't save?
+                    // Or they created them in the "Type of Products" page but that page didn't save to API.
+                    // I will initialize with [] and let them create.
+                    // Wait, if I start empty, they lose the "default" catalog. 
+                    // I'll check if they want the mocks. The user said "me aparecen productos que no he creado".
+                    // So I should definitely NOT force mocks if they aren't in the API.
+                    // However, for the first run, maybe I should save the defaults?
+                    // No, safe bet: Start empty or load API.
+                }
+            } catch (e) {
+                console.error("Failed to load products", e);
+            }
+        };
+        loadProducts();
+    }, []);
 
     // Form State
     const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -53,23 +78,27 @@ export default function ProductsPage() {
         weight: ""
     })
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!formData.name || !formData.weight) return;
 
+        let updatedProducts: Product[];
         if (editingId) {
             // Update existing product
-            setProducts(products.map(p => p.id === editingId ? { ...p, ...formData } as Product : p))
+            updatedProducts = products.map(p => p.id === editingId ? { ...p, ...formData } as Product : p);
         } else {
             // Create new product
             const newProduct: Product = {
-                id: `PROD-00${products.length + 1}`,
+                id: `PROD-${Date.now()}`, // Unique ID
                 name: formData.name!,
                 presentation: formData.presentation || "Sacos",
                 unit: formData.unit || "kg",
                 weight: formData.weight!
             }
-            setProducts([...products, newProduct])
+            updatedProducts = [...products, newProduct];
         }
+
+        setProducts(updatedProducts);
+        await api.save("products_data", updatedProducts);
 
         setIsDialogOpen(false)
         setEditingId(null)

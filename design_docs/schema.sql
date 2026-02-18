@@ -6,6 +6,7 @@ CREATE TABLE TBL_CLIENTES (
     ID_Cliente SERIAL PRIMARY KEY,
     Razon_Social VARCHAR(255) NOT NULL,
     RIF VARCHAR(20) UNIQUE NOT NULL, -- Tax ID
+    Client_Code VARCHAR(50), -- New Field
     Fiscal_Address TEXT NOT NULL,
     Admin_Phone VARCHAR(50),
     Email VARCHAR(100),
@@ -92,8 +93,18 @@ CREATE TABLE TBL_PEDIDOS (
     Quantity DECIMAL(10, 2) NOT NULL, -- Tons or Units
     Unit_Type VARCHAR(20) DEFAULT 'Tons', 
     
+    -- New Analytics Field
+    Seller_Name VARCHAR(100), 
+    
+    -- New Manual Field for Contracts
+    Sales_Order_Number VARCHAR(100), -- Oferta de Venta / Contrato
+    
     Status VARCHAR(50) DEFAULT 'Loading' CHECK (Status IN ('Loading', 'In Transit', 'Delivered', 'Reguia_Pending', 'Cancelled')),
-    Notes TEXT
+    Notes TEXT,
+    
+    Created_At TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    Updated_At TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 );
 
 -- 9. TBL_FINANZAS_VIAJE (Profitability)
@@ -120,8 +131,28 @@ CREATE TABLE TBL_FINANZAS_VIAJE (
     Currency VARCHAR(3) DEFAULT 'USD'
 );
 
--- 10. TBL_REGUIAS (Cargo Redirection)
--- Handles diversions. If an order is diverted, a record is created here.
+-- 10. TBL_DIRECCIONES_PEDIDO (Order Address History)
+-- Wraps all address changes: Creation, Reguias, Final.
+CREATE TABLE TBL_DIRECCIONES_PEDIDO (
+    ID_Direccion SERIAL PRIMARY KEY,
+    ID_Pedido INTEGER REFERENCES TBL_PEDIDOS(ID_Pedido) ON DELETE CASCADE,
+    
+    Type VARCHAR(50) CHECK (Type IN ('CREACION', 'REGUIA', 'DESTINO_FINAL')),
+    Timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Address Details snapshot
+    Address_Full_Text TEXT,
+    State VARCHAR(100),
+    Municipality VARCHAR(100),
+    Parish VARCHAR(100),
+    Site_ID INTEGER REFERENCES TBL_SITIOS_ENTREGA(ID_Sitio),
+    
+    Authorized_By_User_ID INTEGER, -- If we track users
+    Reason_For_Change TEXT 
+);
+
+-- 11. TBL_REGUIAS (Cargo Redirection Events)
+-- Handles the logic/reasoning of the diversion.
 CREATE TABLE TBL_REGUIAS (
     ID_Reguia SERIAL PRIMARY KEY,
     Original_Order_ID INTEGER REFERENCES TBL_PEDIDOS(ID_Pedido),
@@ -133,8 +164,8 @@ CREATE TABLE TBL_REGUIAS (
     -- but logically it continues from the original flow.
     Virtual_Origin_Location TEXT, 
     
-    -- New Destination
-    New_Delivery_Site_ID INTEGER REFERENCES TBL_SITIOS_ENTREGA(ID_Sitio),
+    -- Link to the new address entry
+    New_Address_Entry_ID INTEGER REFERENCES TBL_DIRECCIONES_PEDIDO(ID_Direccion),
     
     -- In case of breakdown, resources might change
     New_Chuto_ID INTEGER REFERENCES TBL_FLOTA_CHUTOS(ID_Chuto),
@@ -152,3 +183,18 @@ CREATE INDEX idx_pedidos_date ON TBL_PEDIDOS(Order_Date);
 CREATE INDEX idx_pedidos_status ON TBL_PEDIDOS(Status);
 CREATE INDEX idx_sitios_client ON TBL_SITIOS_ENTREGA(Client_Ref_ID);
 CREATE INDEX idx_chutos_transportista ON TBL_FLOTA_CHUTOS(Transportista_Ref_ID);
+
+-- 11. REPORT_TEMPLATES (Dynamic PDF Templates)
+CREATE TABLE report_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL CHECK (type IN ('ORDER', 'REGUIA', 'INVOICE', 'AUTHORIZATION', 'DELIVERY', 'TRANSFER', 'COMBINED')),
+    category VARCHAR(50) DEFAULT 'OTRO' CHECK (category IN ('FORMATO_LEGAL', 'REPORTE_ESTADISTICO', 'OTRO')),
+    preview_image_url TEXT,
+    is_system_default BOOLEAN DEFAULT false,
+    html_content TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

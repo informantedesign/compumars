@@ -12,10 +12,14 @@ export type State = {
     municipalities: Municipality[];
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const VENEZUELA_DATA: State[] = (rawData as any[]).map(s => ({
     name: s.estado,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     municipalities: s.municipios.map((m: any) => ({
         name: m.municipio,
         parishes: m.parroquias
     }))
-}));
+})).sort((a, b) => {
+    return a.name.localeCompare(b.name);
+});
