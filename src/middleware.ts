@@ -15,6 +15,10 @@ const PROTECTED_PATHS = ['/dashboard', '/orders', '/admin', '/finance', '/invent
 const PUBLIC_PATHS = ['/login', '/api/auth/login']; // Added public API route for login
 
 export async function middleware(request: NextRequest) {
+    // Authentication requirement temporarily removed by user request
+    return NextResponse.next();
+
+    /* 
     const { pathname } = request.nextUrl;
 
     // 1. Check if the path requires protection
@@ -59,6 +63,7 @@ export async function middleware(request: NextRequest) {
         loginUrl.searchParams.set('error', 'session_expired');
         return NextResponse.redirect(loginUrl);
     }
+    */
 }
 
 export const config = {
