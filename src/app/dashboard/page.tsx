@@ -415,8 +415,9 @@ export default function Dashboard() {
                 <h1 className="text-3xl font-bold tracking-tight">{t.sidebar.dashboard}</h1>
                 <div className="flex items-center gap-2">
                     <Link href="/orders/new">
-                        <Button>
-                            <PlusCircle className="mr-2 h-4 w-4" /> {t.sidebar.newOrder}
+                        <Button size="sm" className="h-9 sm:h-10">
+                            <PlusCircle className="mr-0 sm:mr-2 h-4 w-4" />
+                            <span className="hidden sm:inline">{t.sidebar.newOrder}</span>
                         </Button>
                     </Link>
                 </div>
@@ -1168,16 +1169,13 @@ export default function Dashboard() {
                         </div>
                     )}
                     {selectedTrip && (
-                        <div className="flex justify-between items-center bg-muted/50 p-4 -mx-6 -mb-6 mt-6 border-t">
-                            <div className="text-xs text-muted-foreground">
-                                ID: {selectedTrip.id}
-                            </div>
+                        <div className="flex justify-end items-center bg-muted/50 p-4 -mx-6 -mb-6 mt-6 border-t gap-2">
                             <div className="flex gap-2">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline" className="gap-2">
                                             <Printer className="h-4 w-4" />
-                                            Imprimir Documentos
+                                            Imprimir
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
