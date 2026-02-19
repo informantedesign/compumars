@@ -90,6 +90,8 @@ export default function UsersPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingUser, setEditingUser] = useState<AppUser | null>(null)
 
+    const [confirmPassword, setConfirmPassword] = useState("")
+
     // Form State
     const [formData, setFormData] = useState<Partial<AppUser>>({
         permissions: []
@@ -101,6 +103,7 @@ export default function UsersPage() {
     )
 
     const handleOpenDialog = (user?: AppUser) => {
+        setConfirmPassword("")
         if (user) {
             setEditingUser(user)
             setFormData({ ...user })
@@ -117,6 +120,12 @@ export default function UsersPage() {
 
     const handleSaveUser = () => {
         if (!formData.name || !formData.username || !formData.role) return
+
+        // Validation: Password Match (Only if setting a new password)
+        if (formData.password && formData.password !== confirmPassword) {
+            alert("Las contraseñas no coinciden")
+            return
+        }
 
         if (editingUser) {
             setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...formData } as AppUser : u))
@@ -274,6 +283,7 @@ export default function UsersPage() {
                             <div className="space-y-2">
                                 <Label>Nombre de Usuario</Label>
                                 <Input
+                                    type="text"
                                     value={formData.username || ""}
                                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                     placeholder="Ej. jperez"
@@ -290,6 +300,7 @@ export default function UsersPage() {
                             <div className="space-y-2">
                                 <Label>Teléfono</Label>
                                 <Input
+                                    type="tel"
                                     value={formData.phone || ""}
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     placeholder="0414-0000000"
@@ -298,16 +309,32 @@ export default function UsersPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 border-t pt-4">
-                            <div className="space-y-2">
-                                <Label>Contraseña</Label>
-                                <div className="relative">
-                                    <Lock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        type="password"
-                                        className="pl-9"
-                                        placeholder="Min. 6 caracteres"
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    />
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Contraseña</Label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            type="password"
+                                            className="pl-9"
+                                            placeholder="Nueva contraseña"
+                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                            autoComplete="new-password"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Confirmar Contraseña</Label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            type="password"
+                                            className="pl-9"
+                                            placeholder="Repetir contraseña"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             <div className="space-y-2">

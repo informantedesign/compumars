@@ -16,6 +16,10 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-fira-sans)", "sans-serif"],
+        mono: ["var(--font-fira-code)", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -50,10 +54,11 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Neon Accents
+        // Futuristic Accents
         neon: {
-          blue: "#00f3ff", // Cyan
-          purple: "#bd00ff",
+          violet: "#7C3AED",
+          rose: "#F43F5E",
+          cyan: "#00f3ff",
         },
       },
       borderRadius: {
@@ -64,6 +69,11 @@ const config: Config = {
       backgroundImage: {
         'glass': 'linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%)',
         'glass-dark': 'linear-gradient(145deg, rgba(15, 23, 42, 0.6) 0%, rgba(15, 23, 42, 0.3) 100%)',
+        'glass-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+        'neon-gradient': 'linear-gradient(to right, #7C3AED, #F43F5E)',
+      },
+      backdropBlur: {
+        xs: '2px',
       },
     },
   },

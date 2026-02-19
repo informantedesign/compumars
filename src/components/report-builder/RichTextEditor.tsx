@@ -143,7 +143,7 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
                                                     type: 'menuitem',
                                                     text: item.text,
                                                     onAction: () => {
-                                                        editor.insertContent(`<span style="background-color: #e0f2fe; padding: 2px 5px; border-radius: 4px; border: 1px solid #bae6fd; font-weight: bold; color: #0284c7;" data-variable="${item.value}" contenteditable="false">${item.value}</span>&nbsp;`);
+                                                        editor.insertContent(`<span style="background-color: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 9999px; padding: 2px 8px; font-size: 0.9em; font-family: monospace; color: #7c3aed; display: inline-block;" data-variable="${item.value}" contenteditable="false">${item.value}</span>&nbsp;`);
                                                     }
                                                 }));
                                             }

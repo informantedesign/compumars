@@ -49,17 +49,17 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     ];
 
     return (
-        <div className={cn("flex h-full flex-col", className)}>
-            <div className="flex h-14 items-center border-b border-border px-4 lg:h-[60px] lg:px-6 shrink-0">
+        <div className={cn("flex h-full flex-col glass-panel border-r-0", className)}>
+            <div className="flex h-14 items-center border-b border-white/10 px-4 lg:h-[60px] lg:px-6 shrink-0">
                 <Link href="/" className="flex items-center gap-2 font-semibold">
-                    <span className="text-xl font-bold tracking-tighter text-primary">SGL-VZLA</span>
+                    <span className="text-xl font-bold tracking-tighter neon-text">SGL-VZLA</span>
                 </Link>
             </div>
             <div className="flex-1 overflow-auto py-2">
                 <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1">
                     {links.map((link, idx) => {
                         if (link.separator) {
-                            return <div key={idx} className="my-2 border-t border-border/50 mx-2" />;
+                            return <div key={idx} className="my-2 border-t border-white/10 mx-2" />;
                         }
 
                         const Icon = link.icon!;
@@ -71,11 +71,11 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
                                 href={link.href || "#"}
                                 onClick={onNavigate}
                                 className={cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary hover:bg-muted",
-                                    isActive ? "bg-muted text-primary font-bold" : "text-muted-foreground"
+                                    "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary hover:bg-white/5",
+                                    isActive ? "bg-primary/20 text-primary font-bold shadow-[0_0_15px_rgba(124,58,237,0.3)] border border-primary/20" : "text-muted-foreground"
                                 )}
                             >
-                                <Icon className="h-4 w-4" />
+                                <Icon className={cn("h-4 w-4", isActive && "text-neon-rose")} />
                                 {link.label}
                             </Link>
                         );

@@ -6,15 +6,24 @@ export async function POST(request: Request) {
         const { action, criteria } = await request.json();
 
         if (action === 'reset_orders') {
-            await sql`TRUNCATE TABLE TBL_PEDIDOS RESTART IDENTITY CASCADE;`;
-            // Also clear history tables if separate
-            await sql`TRUNCATE TABLE TBL_DIRECCIONES_PEDIDO RESTART IDENTITY CASCADE;`;
+            // Fix: Clear the JSON store instead of unused TBL_PEDIDOS
+            await sql`DELETE FROM app_data WHERE key = 'active_orders';`;
             return NextResponse.json({ success: true, message: 'All orders reset.' });
         }
 
         if (action === 'batch_delete') {
             if (criteria === 'status_cancelled') {
-                await sql`DELETE FROM TBL_PEDIDOS WHERE Status = 'Cancelado';`;
+                // We need to fetch, filter, and save back because it's a JSON blob
+                const { rows } = await sql`SELECT value FROM app_data WHERE key = 'active_orders'`;
+                if (rows.length > 0) {
+                    const currentOrders = rows[0].value || [];
+                    const computedOrders = currentOrders.filter((o: any) => o.status !== 'Cancelado');
+                    await sql`
+                        INSERT INTO app_data (key, value)
+                        VALUES ('active_orders', ${JSON.stringify(computedOrders)})
+                        ON CONFLICT (key) DO UPDATE SET value = ${JSON.stringify(computedOrders)};
+                    `;
+                }
                 return NextResponse.json({ success: true, message: 'Cancelled orders deleted.' });
             }
         }

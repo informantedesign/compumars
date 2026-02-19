@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/context/language-context"
-import { PlusCircle, Truck, AlertTriangle, MapPin, Package, User, FileText, Phone, RefreshCw, FileSignature, CheckCircle, AlertCircle, Building, Plus, History, Lock, Unlock, Printer, DollarSign, Pencil, Users, Briefcase, Wallet } from "lucide-react"
+import { PlusCircle, Truck, AlertTriangle, MapPin, Package, User, FileText, Phone, RefreshCw, FileSignature, CheckCircle, AlertCircle, Building, Plus, History, Lock, Unlock, Printer, DollarSign, Pencil, Users, Briefcase, Wallet, Settings } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
     MOCK_DRIVERS, MOCK_CHUTOS, MOCK_BATEAS, MOCK_SELLERS, MOCK_CLIENTS
 } from "@/lib/mock-data"
@@ -51,6 +52,7 @@ type HistoryEntry = {
 
 export default function Dashboard() {
     const { t } = useLanguage();
+    const router = useRouter();
     const { settings, updateSettings } = useSystemSettings();
 
 
@@ -426,17 +428,17 @@ export default function Dashboard() {
             {/* Financial & KPI Row */}
             <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
                 {/* Tasa del Día Widget */}
-                <Card className="md:col-span-1 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background border-indigo-100 dark:border-indigo-900">
+                <Card className="md:col-span-1 glass-card border-neon-violet/20 bg-gradient-to-br from-indigo-950/40 to-background/40">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Tasa del Día (BCV)</CardTitle>
-                        <RefreshCw className={`h-4 w-4 text-indigo-500 ${isUpdatingRate ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`h-4 w-4 text-neon-violet ${isUpdatingRate ? 'animate-spin' : ''}`} />
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-end gap-2">
                             <div className="relative w-full">
-                                <span className="absolute left-0 top-1 text-indigo-600 font-bold text-lg">Bs.</span>
+                                <span className="absolute left-0 top-1 text-neon-violet font-bold text-lg">Bs.</span>
                                 <Input
-                                    className="pl-10 text-right font-mono text-3xl font-bold h-10 bg-transparent border-0 border-b rounded-none focus-visible:ring-0 px-0"
+                                    className="pl-10 text-right font-mono text-3xl font-bold h-10 bg-transparent border-0 border-b border-white/10 rounded-none focus-visible:ring-0 px-0 text-foreground"
                                     value={rateInput}
                                     onChange={(e) => setRateInput(e.target.value)}
                                     onBlur={handleUpdateRate}
@@ -452,23 +454,23 @@ export default function Dashboard() {
                 </Card>
 
                 {/* Plant Wallets Summaries */}
-                <Card className="md:col-span-3">
+                <Card className="md:col-span-3 glass-card">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                            <Wallet className="h-4 w-4 text-emerald-600" /> Billeteras de Planta (Estimado)
+                            <Wallet className="h-4 w-4 text-emerald-500" /> Billeteras de Planta (Estimado)
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex gap-4 overflow-x-auto pb-2">
+                        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                             {Object.entries(plantWallets).map(([plant, data]) => (
-                                <div key={plant} className="min-w-[200px] p-3 rounded-lg border bg-card/50">
+                                <div key={plant} className="min-w-[200px] p-3 rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Building className="h-3 w-3 text-muted-foreground" />
-                                        <span className="text-xs font-semibold truncate max-w-[150px]" title={plant}>{plant}</span>
+                                        <span className="text-xs font-semibold truncate max-w-[150px] text-foreground" title={plant}>{plant}</span>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <p className="text-[10px] text-muted-foreground uppercase font-bold">Cantidad Adeudada</p>
-                                        <p className="font-mono font-bold text-lg text-red-600 dark:text-red-400">
+                                        <p className="font-mono font-bold text-lg text-red-500/90 drop-shadow-sm">
                                             {data.quantityOwed.toFixed(2)} <span className="text-xs text-muted-foreground">{data.unit}</span>
                                         </p>
                                     </div>
@@ -483,25 +485,25 @@ export default function Dashboard() {
             </div>
 
             <div className="grid gap-4 grid-cols-1">
-                <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                <Card className="glass-card bg-gradient-to-r from-primary/10 to-transparent border-primary/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">
                             Resumen de Viajes
                         </CardTitle>
-                        <Truck className="h-4 w-4 text-primary" />
+                        <Truck className="h-4 w-4 text-primary drop-shadow-[0_0_5px_rgba(124,58,237,0.5)]" />
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-wrap gap-4 items-center">
-                            <div className="flex flex-col items-center p-2 bg-background rounded-lg border min-w-[100px]">
-                                <span className="text-2xl font-bold">{orders.length}</span>
+                            <div className="flex flex-col items-center p-2 bg-white/5 rounded-lg border border-white/10 min-w-[100px] backdrop-blur-md">
+                                <span className="text-2xl font-bold text-foreground">{orders.length}</span>
                                 <span className="text-xs text-muted-foreground">Total Viajes</span>
                             </div>
                             {availableStatuses.map(status => {
                                 const count = orders.filter(o => o.status === status).length;
                                 if (count === 0) return null;
                                 return (
-                                    <div key={status} className="flex flex-col items-center p-2 bg-background rounded-lg border min-w-[100px]">
-                                        <span className="text-2xl font-bold">{count}</span>
+                                    <div key={status} className="flex flex-col items-center p-2 bg-white/5 rounded-lg border border-white/10 min-w-[100px] backdrop-blur-md">
+                                        <span className="text-2xl font-bold text-foreground">{count}</span>
                                         <span className="text-xs text-muted-foreground">{status}</span>
                                     </div>
                                 );
@@ -512,7 +514,7 @@ export default function Dashboard() {
             </div>
 
             <div className="grid gap-6 grid-cols-1">
-                <Card className="col-span-1">
+                <Card className="col-span-1 glass-card">
                     <CardHeader>
                         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                             <div>
@@ -531,9 +533,9 @@ export default function Dashboard() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="rounded-md border hidden md:block">
+                        <div className="hidden md:block rounded-lg border border-white/10 overflow-hidden">
                             <table className="w-full text-sm text-left">
-                                <thead className="bg-muted/50 text-muted-foreground font-medium">
+                                <thead className="bg-white/5 text-muted-foreground font-medium uppercase text-xs tracking-wider">
                                     <tr>
                                         <th className="p-4">Pedido (Interno)</th>
                                         <th className="p-4 hidden sm:table-cell">Pedido Planta</th>
@@ -555,7 +557,7 @@ export default function Dashboard() {
                                         filteredOrders.map(trip => (
                                             <tr
                                                 key={trip.id}
-                                                className="border-t hover:bg-muted/50 transition-colors cursor-pointer group"
+                                                className="border-t border-white/5 hover:bg-white/5 transition-colors cursor-pointer group"
                                                 onClick={() => handleTripClick(trip)}
                                             >
                                                 <td className="p-4 font-medium group-hover:text-primary transition-colors underline decoration-dotted underline-offset-4">{trip.id}</td>
@@ -567,10 +569,10 @@ export default function Dashboard() {
                                                     {trip.deliveryDate || trip.eta}
                                                 </td>
                                                 <td className="p-4">
-                                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${trip.status === 'En Ruta' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                        trip.status === 'Cargando' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                                            trip.status === 'Cargado en sistema' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' :
-                                                                'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold border ${trip.status === 'En Ruta' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                                                        trip.status === 'Cargando' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
+                                                            trip.status === 'Cargado en sistema' ? 'bg-purple-500/10 text-purple-400 border-purple-500/30' :
+                                                                'bg-green-500/10 text-green-400 border-green-500/30'
                                                         }`}>
                                                         {trip.status}
                                                     </span>
@@ -585,32 +587,32 @@ export default function Dashboard() {
                         {/* Mobile Card View */}
                         <div className="grid gap-4 md:hidden mt-4">
                             {filteredOrders.map(trip => (
-                                <Card key={trip.id} className="border shadow-sm" onClick={() => handleTripClick(trip)}>
+                                <Card key={trip.id} className="border border-white/10 bg-white/5 backdrop-blur-md shadow-lg" onClick={() => handleTripClick(trip)}>
                                     <CardContent className="p-4">
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
-                                                <span className="font-bold text-lg">{trip.id}</span>
+                                                <span className="font-bold text-lg text-foreground">{trip.id}</span>
                                                 <p className="text-xs text-muted-foreground">{trip.plantOrderNumber || "--"}</p>
                                             </div>
-                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${trip.status === 'En Ruta' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                trip.status === 'Cargando' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                                    trip.status === 'Cargado en sistema' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' :
-                                                        'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold border ${trip.status === 'En Ruta' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                                                trip.status === 'Cargando' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
+                                                    trip.status === 'Cargado en sistema' ? 'bg-purple-500/10 text-purple-400 border-purple-500/30' :
+                                                        'bg-green-500/10 text-green-400 border-green-500/30'
                                                 }`}>
                                                 {trip.status}
                                             </span>
                                         </div>
                                         <div className="space-y-1 text-sm">
-                                            <div><span className="font-semibold">Cliente:</span> {trip.client}</div>
-                                            <div><span className="font-semibold">Destino:</span> {trip.destination}</div>
-                                            <div><span className="font-semibold">Chofer:</span> {trip.driver}</div>
+                                            <div><span className="font-semibold text-muted-foreground">Cliente:</span> {trip.client}</div>
+                                            <div><span className="font-semibold text-muted-foreground">Destino:</span> {trip.destination}</div>
+                                            <div><span className="font-semibold text-muted-foreground">Chofer:</span> {trip.driver}</div>
                                             <div className="text-xs text-muted-foreground pt-2">{trip.deliveryDate || trip.eta}</div>
                                         </div>
                                     </CardContent>
                                 </Card>
                             ))}
                             {filteredOrders.length === 0 && (
-                                <div className="p-8 text-center text-muted-foreground text-sm border rounded-md border-dashed">
+                                <div className="p-8 text-center text-muted-foreground text-sm border rounded-md border-dashed border-white/10">
                                     No se encontraron pedidos.
                                 </div>
                             )}
@@ -628,27 +630,7 @@ export default function Dashboard() {
                                 <FileText className="h-5 w-5 text-primary" />
                                 Detalle de Pedido: {selectedTrip?.id}
                             </DialogTitle>
-                            <div className="flex items-center gap-2">
-
-
-                                {/* Reguia Trigger (Only if En Sitio) */}
-                                {/* Reguia Trigger (Only if En Sitio or En Ruta) */}
-                                {(selectedTrip?.status === 'En Sitio' || selectedTrip?.status === 'En Ruta') && (
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        className="gap-2"
-                                        onClick={() => {
-                                            // Scroll to Reguia section or just ensure it's visible
-                                            const element = document.getElementById('reguia-section');
-                                            if (element) element.scrollIntoView({ behavior: 'smooth' });
-                                        }}
-                                    >
-                                        <AlertTriangle className="h-4 w-4" />
-                                        Reguía
-                                    </Button>
-                                )}
-                            </div>
+                            {/* Reguia Button Moved to Footer/Body to avoid overlap with Close X */}
                         </div>
                         <DialogDescription>
                             Gestión y control de despacho.
@@ -659,60 +641,61 @@ export default function Dashboard() {
                         <div className="grid gap-6 py-4">
                             {/* Status Select */}
                             {/* Status and Date - Positions Swapped */}
-                            <div className="bg-muted/30 p-4 rounded-lg flex flex-col md:flex-row items-center justify-between border border-border gap-4">
-                                <div className="flex flex-col gap-4 w-full md:w-auto">
-                                    <div className="flex items-end gap-2">
-                                        <div className="flex items-center gap-4">
-                                            <Label className="uppercase text-xs font-bold text-muted-foreground w-24">Fecha Entrega:</Label>
-                                            <Input
-                                                type="date"
-                                                className="w-[140px] h-9 font-mono"
-                                                value={tempDeliveryDate ? tempDeliveryDate.split('/').reverse().join('-') : ''}
-                                                onChange={(e) => {
-                                                    const dateVal = e.target.value; // YYYY-MM-DD
-                                                    const formatted = dateVal ? dateVal.split('-').reverse().join('/') : '';
-                                                    setTempDeliveryDate(formatted);
-                                                }}
-                                            />
-                                        </div>
-                                        {tempDeliveryDate !== (selectedTrip.deliveryDate || "") && (
-                                            <Button
-                                                size="sm"
-                                                className="h-9 px-2 bg-green-600 hover:bg-green-700"
-                                                onClick={() => handleUpdateOrder({ deliveryDate: tempDeliveryDate }, `Fecha de Entrega actualizada a: ${tempDeliveryDate}`)}
-                                                title="Confirmar Fecha"
-                                            >
-                                                <CheckCircle className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                    </div>
+                            <div className="bg-muted/30 p-4 rounded-lg flex flex-col items-start gap-4 border border-border">
+                                <div className="flex w-full items-center justify-between">
+                                    <h3 className="font-bold text-sm uppercase text-muted-foreground flex items-center gap-2">
+                                        <Settings className="h-4 w-4" /> Gestión de Estatus y Entrega
+                                    </h3>
+                                    {/* Moved Reguia Button Here */}
+                                    {(selectedTrip?.status === 'En Sitio' || selectedTrip?.status === 'En Ruta') && (
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            className="gap-2"
+                                            onClick={() => router.push(`/reguia/${selectedTrip.id}`)}
+                                        >
+                                            <AlertTriangle className="h-4 w-4" />
+                                            Reguía
+                                        </Button>
+                                    )}
+                                </div>
 
-                                    <div className="flex items-center gap-4">
-                                        <Label className="uppercase text-xs font-bold text-muted-foreground w-24">Cant. Solicitada:</Label>
-                                        <div className="flex items-center gap-2">
-                                            <Input
-                                                className="w-[100px] h-9 font-mono bg-muted/50 text-right text-muted-foreground border-transparent"
-                                                value={parseFloat(selectedTrip.quantity?.split(' ')[0] || "0")}
-                                                readOnly
-                                                disabled
-                                                type="number"
-                                            />
-                                            <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded border">
-                                                {quantityUnit}
-                                            </span>
+                                <div className="flex flex-col md:flex-row items-center justify-between w-full gap-4">
+                                    <div className="flex flex-col gap-4 w-full md:w-auto">
+                                        <div className="flex items-end gap-2">
+                                            <div className="flex items-center gap-4">
+                                                <Label className="uppercase text-xs font-bold text-muted-foreground w-24">Fecha Entrega:</Label>
+                                                <Input
+                                                    type="date"
+                                                    className="w-[140px] h-9 font-mono"
+                                                    value={tempDeliveryDate ? tempDeliveryDate.split('/').reverse().join('-') : ''}
+                                                    onChange={(e) => {
+                                                        const dateVal = e.target.value; // YYYY-MM-DD
+                                                        const formatted = dateVal ? dateVal.split('-').reverse().join('/') : '';
+                                                        setTempDeliveryDate(formatted);
+                                                    }}
+                                                />
+                                            </div>
+                                            {tempDeliveryDate !== (selectedTrip.deliveryDate || "") && (
+                                                <Button
+                                                    size="sm"
+                                                    className="h-9 px-2 bg-green-600 hover:bg-green-700"
+                                                    onClick={() => handleUpdateOrder({ deliveryDate: tempDeliveryDate }, `Fecha de Entrega actualizada a: ${tempDeliveryDate}`)}
+                                                    title="Confirmar Fecha"
+                                                >
+                                                    <CheckCircle className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                         </div>
-                                    </div>
 
-                                    {/* Loaded Quantity (Real Plant Dispatch) */}
-                                    <div className="flex items-end gap-2">
                                         <div className="flex items-center gap-4">
-                                            <Label className="uppercase text-xs font-bold text-muted-foreground w-24">Cant. Cargada (Real):</Label>
+                                            <Label className="uppercase text-xs font-bold text-muted-foreground w-24">Cant. Solicitada:</Label>
                                             <div className="flex items-center gap-2">
                                                 <Input
-                                                    className="w-[100px] h-9 font-mono bg-background text-right"
-                                                    value={tempLoadedQuantity}
-                                                    onChange={(e) => setTempLoadedQuantity(e.target.value)}
-                                                    placeholder="0"
+                                                    className="w-[100px] h-9 font-mono bg-muted/50 text-right text-muted-foreground border-transparent"
+                                                    value={parseFloat(selectedTrip.quantity?.split(' ')[0] || "0")}
+                                                    readOnly
+                                                    disabled
                                                     type="number"
                                                 />
                                                 <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded border">
@@ -720,106 +703,125 @@ export default function Dashboard() {
                                                 </span>
                                             </div>
                                         </div>
-                                        {tempLoadedQuantity !== (selectedTrip.loaded_quantity ? selectedTrip.loaded_quantity.split(' ')[0] : "") && (
-                                            <Button
-                                                size="sm"
-                                                className="h-9 px-2 bg-green-600 hover:bg-green-700"
-                                                onClick={() => {
-                                                    const newLoaded = tempLoadedQuantity ? `${tempLoadedQuantity} ${quantityUnit}` : undefined;
-                                                    handleUpdateOrder({ loaded_quantity: newLoaded }, `Cantidad Cargada Real: ${newLoaded}`);
-                                                }}
-                                                title="Confirmar Cantidad"
-                                            >
-                                                <CheckCircle className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                    </div>
 
-                                    {/* Saldo a Favor Logic */}
-                                    {selectedTrip.loaded_quantity && selectedTrip.quantity && (
-                                        (() => {
-                                            const billed = parseFloat(selectedTrip.quantity.split(' ')[0]) || 0;
-                                            const loaded = parseFloat(selectedTrip.loaded_quantity.split(' ')[0]) || 0;
-                                            const diff = billed - loaded;
-
-                                            // Only show if there is a positive difference (Credit)
-                                            if (diff > 0) {
-                                                const unitCost = selectedTrip.unitPlantCost || ((selectedTrip.plantCost || 0) / billed);
-                                                const creditAmount = diff * unitCost;
-
-                                                return (
-                                                    <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-                                                        <div className="flex justify-between items-center text-xs">
-                                                            <span className="font-bold text-green-700 dark:text-green-400 flex items-center gap-1">
-                                                                <Wallet className="h-3 w-3" /> Saldo a Favor Planta:
-                                                            </span>
-                                                            <span className="font-mono font-bold text-green-800 dark:text-green-300">
-                                                                ${creditAmount.toFixed(2)}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-[10px] text-green-600 dark:text-green-500 mt-1">
-                                                            {diff.toFixed(2)} {quantityUnit} no cargados (Facturado &gt; Real)
-                                                        </p>
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        })()
-                                    )}
-
-                                </div>
-
-                                <div className="flex flex-col items-end gap-2 w-full md:w-auto">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex flex-col gap-1">
-                                            <Label className="uppercase text-[10px] font-bold text-muted-foreground self-end">Estatus Actual</Label>
-                                            <Select
-                                                value={pendingStatus}
-                                                onValueChange={(val) => setPendingStatus(val)}
-                                            >
-                                                <SelectTrigger className={`w-[180px] font-bold ${pendingStatus === 'En Ruta' ? 'text-blue-600 border-blue-200 bg-blue-50' :
-                                                    pendingStatus === 'Completado' ? 'text-green-600 border-green-200 bg-green-50' :
-                                                        ''
-                                                    }`}>
-                                                    <SelectValue placeholder="Estatus" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {availableStatuses.map(status => (
-                                                        <SelectItem key={status} value={status}>
-                                                            {status}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        {pendingStatus !== selectedTrip.status && (
-                                            <div className="flex flex-col gap-1">
-                                                <Label className="uppercase text-[10px] font-bold text-muted-foreground self-end opacity-0">Action</Label>
+                                        {/* Loaded Quantity (Real Plant Dispatch) */}
+                                        <div className="flex items-end gap-2">
+                                            <div className="flex items-center gap-4">
+                                                <Label className="uppercase text-xs font-bold text-muted-foreground w-24">Cant. Cargada (Real):</Label>
+                                                <div className="flex items-center gap-2">
+                                                    <Input
+                                                        className="w-[100px] h-9 font-mono bg-background text-right"
+                                                        value={tempLoadedQuantity}
+                                                        onChange={(e) => setTempLoadedQuantity(e.target.value)}
+                                                        placeholder="0"
+                                                        type="number"
+                                                    />
+                                                    <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded border">
+                                                        {quantityUnit}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {tempLoadedQuantity !== (selectedTrip.loaded_quantity ? selectedTrip.loaded_quantity.split(' ')[0] : "") && (
                                                 <Button
-                                                    size="icon"
-                                                    className="bg-primary hover:bg-primary/90"
-                                                    onClick={handleConfirmStatusChange}
-                                                    title="Guardar nuevo estatus"
+                                                    size="sm"
+                                                    className="h-9 px-2 bg-green-600 hover:bg-green-700"
+                                                    onClick={() => {
+                                                        const newLoaded = tempLoadedQuantity ? `${tempLoadedQuantity} ${quantityUnit}` : undefined;
+                                                        handleUpdateOrder({ loaded_quantity: newLoaded }, `Cantidad Cargada Real: ${newLoaded}`);
+                                                    }}
+                                                    title="Confirmar Cantidad"
                                                 >
                                                     <CheckCircle className="h-4 w-4" />
                                                 </Button>
+                                            )}
+                                        </div>
+
+                                        {/* Saldo a Favor Logic */}
+                                        {selectedTrip.loaded_quantity && selectedTrip.quantity && (
+                                            (() => {
+                                                const billed = parseFloat(selectedTrip.quantity.split(' ')[0]) || 0;
+                                                const loaded = parseFloat(selectedTrip.loaded_quantity.split(' ')[0]) || 0;
+                                                const diff = billed - loaded;
+
+                                                // Only show if there is a positive difference (Credit)
+                                                if (diff > 0) {
+                                                    const unitCost = selectedTrip.unitPlantCost || ((selectedTrip.plantCost || 0) / billed);
+                                                    const creditAmount = diff * unitCost;
+
+                                                    return (
+                                                        <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                                                            <div className="flex justify-between items-center text-xs">
+                                                                <span className="font-bold text-green-700 dark:text-green-400 flex items-center gap-1">
+                                                                    <Wallet className="h-3 w-3" /> Saldo a Favor Planta:
+                                                                </span>
+                                                                <span className="font-mono font-bold text-green-800 dark:text-green-300">
+                                                                    ${creditAmount.toFixed(2)}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-[10px] text-green-600 dark:text-green-500 mt-1">
+                                                                {diff.toFixed(2)} {quantityUnit} no cargados (Facturado &gt; Real)
+                                                            </p>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()
+                                        )}
+
+                                    </div>
+
+                                    <div className="flex flex-col items-end gap-2 w-full md:w-auto">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex flex-col gap-1">
+                                                <Label className="uppercase text-[10px] font-bold text-muted-foreground self-end">Estatus Actual</Label>
+                                                <Select
+                                                    value={pendingStatus}
+                                                    onValueChange={(val) => setPendingStatus(val)}
+                                                >
+                                                    <SelectTrigger className={`w-[180px] font-bold ${pendingStatus === 'En Ruta' ? 'text-blue-600 border-blue-200 bg-blue-50' :
+                                                        pendingStatus === 'Completado' ? 'text-green-600 border-green-200 bg-green-50' :
+                                                            ''
+                                                        }`}>
+                                                        <SelectValue placeholder="Estatus" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {availableStatuses.map(status => (
+                                                            <SelectItem key={status} value={status}>
+                                                                {status}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            {pendingStatus !== selectedTrip.status && (
+                                                <div className="flex flex-col gap-1">
+                                                    <Label className="uppercase text-[10px] font-bold text-muted-foreground self-end opacity-0">Action</Label>
+                                                    <Button
+                                                        size="icon"
+                                                        className="bg-primary hover:bg-primary/90"
+                                                        onClick={handleConfirmStatusChange}
+                                                        title="Guardar nuevo estatus"
+                                                    >
+                                                        <CheckCircle className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Delivered Quantity Input (Shows up when Status is Completed) */}
+                                        {pendingStatus === 'Completado' && (
+                                            <div className="flex items-center gap-2 mt-1 animate-in slide-in-from-top-1 fade-in duration-300">
+                                                <Label className="text-xs font-bold text-green-600">Cant. Recibida:</Label>
+                                                <Input
+                                                    className="w-[100px] h-8 font-mono border-green-200 bg-green-50/50"
+                                                    value={deliveredQuantity}
+                                                    onChange={(e) => setDeliveredQuantity(e.target.value)}
+                                                    placeholder="0.00"
+                                                />
+                                                <span className="text-xs font-bold text-muted-foreground">{quantityUnit}</span>
                                             </div>
                                         )}
                                     </div>
-
-                                    {/* Delivered Quantity Input (Shows up when Status is Completed) */}
-                                    {pendingStatus === 'Completado' && (
-                                        <div className="flex items-center gap-2 mt-1 animate-in slide-in-from-top-1 fade-in duration-300">
-                                            <Label className="text-xs font-bold text-green-600">Cant. Recibida:</Label>
-                                            <Input
-                                                className="w-[100px] h-8 font-mono border-green-200 bg-green-50/50"
-                                                value={deliveredQuantity}
-                                                onChange={(e) => setDeliveredQuantity(e.target.value)}
-                                                placeholder="0.00"
-                                            />
-                                            <span className="text-xs font-bold text-muted-foreground">{quantityUnit}</span>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
 
@@ -1191,7 +1193,7 @@ export default function Dashboard() {
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                                <Button onClick={() => setIsEditing(false)}>Cerrar</Button>
+                                <Button onClick={() => setSelectedTripId(null)}>Cerrar</Button>
                             </div>
                         </div>
                     )}
